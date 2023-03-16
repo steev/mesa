@@ -264,17 +264,20 @@ vk_drm_syncobj_wait_many(struct vk_device *device,
                                       wait_count, abs_timeout_ns,
                                       syncobj_wait_flags |
                                       DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE,
-                                      NULL /* first_signaled */);
+                                      NULL /* first_signaled */,
+                                      os_time_get_absolute_timeout(0));
    } else if (has_timeline) {
       err = drm_syncobj_timeline_wait(device->drm_fd, handles, wait_values,
                                       wait_count, abs_timeout_ns,
                                       syncobj_wait_flags,
-                                      NULL /* first_signaled */);
+                                      NULL /* first_signaled */,
+                                      os_time_get_absolute_timeout(0));
    } else {
       err = drm_syncobj_wait(device->drm_fd, handles,
                              wait_count, abs_timeout_ns,
                              syncobj_wait_flags,
-                             NULL /* first_signaled */);
+                             NULL /* first_signaled */,
+                             os_time_get_absolute_timeout(0));
    }
 
    STACK_ARRAY_FINISH(handles);

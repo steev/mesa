@@ -22,14 +22,42 @@
  */
 
 #include <errno.h>
+#include <stdbool.h>
+#include <time.h>
 
 #include "drm-uapi/drm.h"
 #include "util/libdrm.h"
 
+static bool
+has_syncobj_deadline(int fd)
+{
+   static int has_deadline = -1;
+
+   if (has_deadline != -1)
+      return has_deadline;
+
+   /*
+    * Do a dummy wait with no handles to probe whether kernel supports the
+    * new _WAIT_DEADLINE flag
+    */
+   struct drm_syncobj_wait args = {
+         .count_handles = 0,
+         .flags = DRM_SYNCOBJ_WAIT_FLAGS_WAIT_DEADLINE,
+   };
+   int ret;
+
+   ret = drmIoctl(fd, DRM_IOCTL_SYNCOBJ_WAIT, &args);
+
+   has_deadline = !ret;
+
+   return has_deadline;
+}
+
 int
 drm_syncobj_wait(int fd, uint32_t *handles, unsigned num_handles,
                  int64_t timeout_nsec, unsigned flags,
-                 uint32_t *first_signaled)
+                 uint32_t *first_signaled,
+                 int64_t deadline_nsec)
 {
    struct drm_syncobj_wait args = {
          .handles = (uintptr_t)handles,
@@ -38,6 +66,11 @@ drm_syncobj_wait(int fd, uint32_t *handles, unsigned num_handles,
          .flags = flags,
    };
    int ret;
+
+   if (deadline_nsec && has_syncobj_deadline(fd)) {
+      args.flags |= DRM_SYNCOBJ_WAIT_FLAGS_WAIT_DEADLINE;
+      args.deadline_nsec = deadline_nsec;
+   }
 
    ret = drmIoctl(fd, DRM_IOCTL_SYNCOBJ_WAIT, &args);
    if (ret < 0)
@@ -53,7 +86,8 @@ int
 drm_syncobj_timeline_wait(int fd, uint32_t *handles, uint64_t *points,
                           unsigned num_handles,
                           int64_t timeout_nsec, unsigned flags,
-                          uint32_t *first_signaled)
+                          uint32_t *first_signaled,
+                          int64_t deadline_nsec)
 {
    struct drm_syncobj_timeline_wait args = {
          .handles = (uintptr_t)handles,
@@ -63,6 +97,11 @@ drm_syncobj_timeline_wait(int fd, uint32_t *handles, uint64_t *points,
          .flags = flags,
    };
    int ret;
+
+   if (deadline_nsec && has_syncobj_deadline(fd)) {
+      args.flags |= DRM_SYNCOBJ_WAIT_FLAGS_WAIT_DEADLINE;
+      args.deadline_nsec = deadline_nsec;
+   }
 
    ret = drmIoctl(fd, DRM_IOCTL_SYNCOBJ_TIMELINE_WAIT, &args);
    if (ret < 0)
