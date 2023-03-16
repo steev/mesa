@@ -24,10 +24,10 @@
 #include "vk_drm_syncobj.h"
 
 #include <sched.h>
-#include <xf86drm.h>
 
 #include "drm-uapi/drm.h"
 
+#include "util/libdrm.h"
 #include "util/os_time.h"
 
 #include "vk_device.h"
@@ -260,21 +260,21 @@ vk_drm_syncobj_wait_many(struct vk_device *device,
        * syncobjs because the non-timeline wait doesn't support
        * DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE.
        */
-      err = drmSyncobjTimelineWait(device->drm_fd, handles, wait_values,
-                                   wait_count, abs_timeout_ns,
-                                   syncobj_wait_flags |
-                                   DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE,
-                                   NULL /* first_signaled */);
+      err = drm_syncobj_timeline_wait(device->drm_fd, handles, wait_values,
+                                      wait_count, abs_timeout_ns,
+                                      syncobj_wait_flags |
+                                      DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE,
+                                      NULL /* first_signaled */);
    } else if (has_timeline) {
-      err = drmSyncobjTimelineWait(device->drm_fd, handles, wait_values,
-                                   wait_count, abs_timeout_ns,
-                                   syncobj_wait_flags,
-                                   NULL /* first_signaled */);
+      err = drm_syncobj_timeline_wait(device->drm_fd, handles, wait_values,
+                                      wait_count, abs_timeout_ns,
+                                      syncobj_wait_flags,
+                                      NULL /* first_signaled */);
    } else {
-      err = drmSyncobjWait(device->drm_fd, handles,
-                           wait_count, abs_timeout_ns,
-                           syncobj_wait_flags,
-                           NULL /* first_signaled */);
+      err = drm_syncobj_wait(device->drm_fd, handles,
+                             wait_count, abs_timeout_ns,
+                             syncobj_wait_flags,
+                             NULL /* first_signaled */);
    }
 
    STACK_ARRAY_FINISH(handles);
